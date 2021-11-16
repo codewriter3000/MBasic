@@ -33,11 +33,11 @@ public class MBasic {
         List<Token> tokens = tokenizer.scanTokens();
         System.out.println(tokens);
 
-//        Parser parser = new Parser(tokens);
-//        List<Stmt> statements = parser.parse();
-//
-//        if(compileError) error();
-//
+        Parser parser = new Parser(tokens);
+        List<Stmt> statements = parser.parse();
+
+        if(compileError) error();
+
 //        Resolver resolver = new Resolver(interpreter);
 //        resolver.resolve();
 //
