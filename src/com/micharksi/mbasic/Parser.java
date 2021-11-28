@@ -103,10 +103,7 @@ public class Parser {
     }
 
     private Stmt.Function function(){
-        Token name = null;
-        if(match(IDENTIFIER)){
-            name = advance();
-        }
+        Token name = consume(IDENTIFIER, "Expect function name.");
 
         consume(LEFT_PAREN, "Expect '(' after function name.");
         List<Token> parameters = new ArrayList<>();

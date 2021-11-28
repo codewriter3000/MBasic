@@ -1,3 +1,9 @@
-let x = 8;
+do count(x){
+    print(x);
+    if(x < 10){
+        x = x + 1;
+        count(x);
+    }
+}
 
-print(x % 3);
+count(1);
