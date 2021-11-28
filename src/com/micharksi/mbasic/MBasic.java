@@ -1,5 +1,9 @@
 package com.micharksi.mbasic;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Scanner;
 
@@ -7,11 +11,11 @@ import static java.lang.System.exit;
 
 public class MBasic {
 
-    // private static final Interpreter interpreter = new Interpreter();
+    private static final Interpreter interpreter = new Interpreter();
     static boolean compileError = false;
     static boolean runtimeError = false;
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
         switch(args.length){
             case 1:
                 runPath(args[0]);
@@ -24,8 +28,17 @@ public class MBasic {
         }
     }
 
-    public static void runPath(String path){
-        //TODO
+    public static void runPath(String path) throws IOException {
+        byte[] bytes = Files.readAllBytes(Paths.get(path));
+        run(new String(bytes, Charset.defaultCharset()));
+
+
+        // Indicate an error in the exit code.
+        if (compileError) System.exit(65);
+
+
+        if (runtimeError) System.exit(70);
+
     }
 
     public static void run(String source){
@@ -38,12 +51,12 @@ public class MBasic {
 
         if(compileError) error();
 
-//        Resolver resolver = new Resolver(interpreter);
-//        resolver.resolve();
-//
-//        if(compileError) error();
-//
-//        interpreter.interpret(statements);
+        Resolver resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
+
+        if(compileError) error();
+
+        interpreter.interpret(statements);
 
         if(compileError) error();
     }

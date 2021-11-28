@@ -146,6 +146,10 @@ public class Interpreter implements Expr.Visitor<Object>,
                     return (double)left + (double)right;
                 } // [plus]
 
+                if (left instanceof Integer && right instanceof Integer) {
+                    return (Integer)left + (Integer)right;
+                }
+
                 if (left instanceof String && right instanceof String) {
                     return (String)left + (String)right;
                 }
@@ -168,6 +172,11 @@ public class Interpreter implements Expr.Visitor<Object>,
                 checkNumberOperands(expr.operator, left, right);
 
                 return (double)left * (double)right;
+            case PERCENT:
+
+                checkNumberOperands(expr.operator, left, right);
+
+                return (Integer)left % (Integer)right;
         }
 
         // Unreachable.
@@ -321,6 +330,7 @@ public class Interpreter implements Expr.Visitor<Object>,
 
     private void checkNumberOperand(Token operator, Object operand) {
         if (operand instanceof Double) return;
+        if (operand instanceof Integer) return;
         throw new RuntimeError(operator, "Operand must be a number.");
     }
 
@@ -328,6 +338,7 @@ public class Interpreter implements Expr.Visitor<Object>,
     private void checkNumberOperands(Token operator,
                                      Object left, Object right) {
         if (left instanceof Double && right instanceof Double) return;
+        if (left instanceof Integer && right instanceof Integer) return;
         // [operand]
         throw new RuntimeError(operator, "Operands must be numbers.");
     }
