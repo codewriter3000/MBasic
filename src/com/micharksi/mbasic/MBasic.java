@@ -91,4 +91,10 @@ public class MBasic {
                 "[line " + line + "] Error" + where + ": " + message);
         compileError = true;
     }
+
+    public static void runtimeError(RuntimeError error) {
+        System.err.println(error.getMessage() +
+                "\n[line " + error.token.line + "]");
+        runtimeError = true;
+    }
 }
