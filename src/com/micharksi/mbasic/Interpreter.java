@@ -1,9 +1,6 @@
 package com.micharksi.mbasic;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Interpreter implements Expr.Visitor<Object>,
         Stmt.Visitor<Void> {
@@ -40,6 +37,33 @@ public class Interpreter implements Expr.Visitor<Object>,
             public Object call(Interpreter interpreter, List<Object> arguments) {
                 System.out.println(arguments.get(0));
                 return null;
+            }
+        });
+
+        globals.define("str", new MBasicCallable() {
+
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return arguments.get(0).toString();
+            }
+        });
+
+        globals.define("read", new MBasicCallable() {
+
+            @Override
+            public int arity() {
+                return 0;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Scanner s = new Scanner(System.in);
+                return s.nextLine();
             }
         });
     }
@@ -105,42 +129,45 @@ public class Interpreter implements Expr.Visitor<Object>,
 
     @Override
     public Object visitBinaryExpr(Expr.Binary expr) {
+        int type;
         Object left = evaluate(expr.left);
         Object right = evaluate(expr.right); // [left]
 
         switch (expr.operator.type) {
-
             case BANG_EQUAL: return !isEqual(left, right);
             case EQUAL_EQUAL: return isEqual(left, right);
 
 
             case GREATER:
 
-                checkNumberOperands(expr.operator, left, right);
+                type = checkNumberOperands(expr.operator, left, right);
 
-                return (double)left > (double)right;
+                return type == 0 ? (double)left > (double)right
+                        : (int)left > (int)right;
             case GREATER_EQUAL:
 
-                checkNumberOperands(expr.operator, left, right);
+                type = checkNumberOperands(expr.operator, left, right);
 
-                return (double)left >= (double)right;
+                return type == 0 ? (double)left >= (double)right
+                        : (int)left >= (int)right;
             case LESS:
 
-                checkNumberOperands(expr.operator, left, right);
+                type = checkNumberOperands(expr.operator, left, right);
 
-                return (double)left < (double)right;
+                return type == 0 ? (double)left < (double)right
+                        : (int)left < (int)right;
             case LESS_EQUAL:
 
-                checkNumberOperands(expr.operator, left, right);
+                type = checkNumberOperands(expr.operator, left, right);
 
-                return (double)left <= (double)right;
-
+                return type == 0 ? (double)left <= (double)right
+                        : (int)left <= (int)right;
             case MINUS:
 
-                checkNumberOperands(expr.operator, left, right);
+                type = checkNumberOperands(expr.operator, left, right);
 
-                return (double)left - (double)right;
-
+                return type == 2 ? MiscMath.hexSubtract(left.toString(), right.toString())
+                        : (double)left - (double)right;
             case PLUS:
                 if (left instanceof Double && right instanceof Double) {
                     return (double)left + (double)right;
@@ -151,6 +178,18 @@ public class Interpreter implements Expr.Visitor<Object>,
                 }
 
                 if (left instanceof String && right instanceof String) {
+                    char miscTypeLeft = left.toString().toCharArray()[1];
+                    char miscTypeRight = right.toString().toCharArray()[1];
+
+                    if (miscTypeLeft == miscTypeRight){
+                        if (miscTypeLeft == 'x'){
+                            return MiscMath.hexAdd((String)left, (String)right);
+                        }
+                        if (miscTypeLeft == 'b'){
+                            return MiscMath.binAdd((String)left, (String)right);
+                        }
+                    }
+
                     return (String)left + (String)right;
                 }
 
@@ -335,10 +374,13 @@ public class Interpreter implements Expr.Visitor<Object>,
     }
 
 
-    private void checkNumberOperands(Token operator,
+    private int checkNumberOperands(Token operator,
                                      Object left, Object right) {
-        if (left instanceof Double && right instanceof Double) return;
-        if (left instanceof Integer && right instanceof Integer) return;
+        // 0: Double
+        // 1: Integer
+        if (left instanceof Double && right instanceof Double) return 0;
+        if (left instanceof Integer && right instanceof Integer) return 1;
+        if (MiscMath.isHex(left.toString()) && MiscMath.isHex(right.toString())) return 2;
         // [operand]
         throw new RuntimeError(operator, "Operands must be numbers.");
     }
@@ -371,5 +413,139 @@ public class Interpreter implements Expr.Visitor<Object>,
         }
 
         return object.toString();
+    }
+
+    private static class MiscMath {
+
+        public static void main(String[] args){
+            System.out.println(hexAdd("0x126", "0xAB1"));
+        }
+
+        // turn this hashmap into an ArrayList?
+        static List<Character> HexValues = new ArrayList<>();
+
+        static {
+            HexValues.add('0');
+            HexValues.add('1');
+            HexValues.add('2');
+            HexValues.add('3');
+            HexValues.add('4');
+            HexValues.add('5');
+            HexValues.add('6');
+            HexValues.add('7');
+            HexValues.add('8');
+            HexValues.add('9');
+            HexValues.add('A');
+            HexValues.add('B');
+            HexValues.add('C');
+            HexValues.add('D');
+            HexValues.add('E');
+            HexValues.add('F');
+        }
+
+        public static boolean isHex(String hex){
+            if(!hex.startsWith("0x")){
+                return false;
+            }
+            for(char c : hex.substring(3).toCharArray()){
+                if(!(c >= 'A' && c <= 'F' || c >= '0' && c <= '9')){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static String reverseString(String str){
+            char ch;
+            String nstr = "";
+            for (int i=0; i<str.length(); i++)
+            {
+                ch = str.charAt(i); //extracts each character
+                nstr = ch + nstr; //adds each character in front of the existing string
+            }
+            return nstr;
+        }
+
+        public static String decToHex(int dec){
+            char remainder = HexValues.get(dec%16);
+            int quotient = dec/16;
+            
+            return null;
+        }
+
+        public static String hexAdd(String... hexNums){
+            int sum = 0;
+            for(String num : hexNums){
+                if(!num.startsWith("0x")){
+                    throw new RuntimeError(new Token(null, num, null, -1), "Expected hexadecimal value.");
+                }
+
+                String part = reverseString(num.substring(2)).toUpperCase();
+                char[] parts = part.toCharArray();
+                int minisum = 0;
+                for(int i = 0; i < part.length(); i++){
+                    minisum += Math.pow(16, i) * HexValues.indexOf(parts[i]);
+                }
+                sum += minisum;
+            }
+
+            StringBuilder convertedHex = new StringBuilder();
+
+            for(int i = sum; i >= 1; i /= 16){
+                char hexDigit = HexValues.get(i%16);
+                convertedHex.append(hexDigit);
+            }
+
+            convertedHex.append("x0");
+
+            return reverseString(convertedHex.toString());
+        }
+
+        public static String hexSubtract(String hexNum1, String hexNum2){
+            int sum = 0;
+
+            //hexNum1
+            if(!hexNum1.startsWith("0x")){
+                throw new RuntimeError(new Token(null, hexNum1, null, -1), "Expected hexadecimal value.");
+            }
+            String part = reverseString(hexNum1.substring(2)).toUpperCase();
+            char[] parts = part.toCharArray();
+            int minisum = 0;
+            for(int i = 0; i < part.length(); i++){
+                minisum += Math.pow(16, i) * HexValues.indexOf(parts[i]);
+            }
+            sum += minisum;
+
+            int subtractend = 0;
+
+            //hexNum2
+            if(!hexNum1.startsWith("0x")){
+                throw new RuntimeError(new Token(null, hexNum2, null, -1), "Expected hexadecimal value.");
+            }
+            part = reverseString(hexNum2.substring(2)).toUpperCase();
+            parts = part.toCharArray();
+            minisum = 0;
+            for(int i = 0; i < part.length(); i++){
+                minisum += Math.pow(16, i) * HexValues.indexOf(parts[i]);
+            }
+            subtractend += minisum;
+
+            sum -= subtractend;
+
+            StringBuilder convertedHex = new StringBuilder();
+
+            for(int i = sum; i >= 1; i /= 16){
+                char hexDigit = HexValues.get(i%16);
+                convertedHex.append(hexDigit);
+            }
+
+            convertedHex.append("x0");
+
+            return reverseString(convertedHex.toString());
+        }
+
+        public static String binAdd(String... binNums){
+            return null;
+        }
     }
 }

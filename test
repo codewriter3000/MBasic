@@ -1,9 +1,1 @@
-do count(x){
-    print(x);
-    if(x < 10){
-        x = x + 1;
-        count(x);
-    }
-}
-
-count(1);
+print(0x74 - 0x7B);
