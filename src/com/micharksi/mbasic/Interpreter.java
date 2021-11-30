@@ -66,6 +66,44 @@ public class Interpreter implements Expr.Visitor<Object>,
                 return s.nextLine();
             }
         });
+
+        globals.define("binary", new MBasicCallable() {
+
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                if(MiscMath.isBin(arguments.get(0).toString())) return arguments.get(0);
+                if(MiscMath.isHex(arguments.get(0).toString())) return
+                        MiscMath.decToBin(MiscMath.hexToDec(arguments.get(0).toString()));
+                if(arguments.get(0) instanceof Integer) return MiscMath.decToBin((int)arguments.get(0));
+
+                throw new RuntimeError(new Token(null, arguments.get(0).toString(),
+                        null, -1), "Expected bin, int, or hex.");
+            }
+        });
+
+        globals.define("hexadecimal", new MBasicCallable() {
+
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                if(MiscMath.isHex(arguments.get(0).toString())) return arguments.get(0);
+                if(MiscMath.isBin(arguments.get(0).toString())) return
+                        MiscMath.decToHex(MiscMath.binToDec(arguments.get(0).toString()));
+                if(arguments.get(0) instanceof Integer) return MiscMath.decToHex((int)arguments.get(0));
+
+                throw new RuntimeError(new Token(null, arguments.get(0).toString(),
+                        null, -1), "Expected bin, int, or hex.");
+            }
+        });
     }
 
     void interpret(List<Stmt> statements) {
@@ -167,6 +205,7 @@ public class Interpreter implements Expr.Visitor<Object>,
                 type = checkNumberOperands(expr.operator, left, right);
 
                 return type == 2 ? MiscMath.hexSubtract(left.toString(), right.toString())
+                        : type == 3 ? MiscMath.binSubtract(left.toString(), right.toString())
                         : (double)left - (double)right;
             case PLUS:
                 if (left instanceof Double && right instanceof Double) {
@@ -216,6 +255,26 @@ public class Interpreter implements Expr.Visitor<Object>,
                 checkNumberOperands(expr.operator, left, right);
 
                 return (Integer)left % (Integer)right;
+            case BITWISE_OR:
+
+                type = checkNumberOperands(expr.operator, left, right);
+
+                return type == 2 ? MiscMath.decToHex(
+                        MiscMath.binToDec(MiscMath.binOr(
+                                MiscMath.decToBin(MiscMath.hexToDec(left.toString())),
+                                MiscMath.decToBin(MiscMath.hexToDec(right.toString()))
+                        ))
+                ) : MiscMath.binOr(left.toString(), right.toString());
+            case BITWISE_AND:
+
+                type = checkNumberOperands(expr.operator, left, right);
+
+                return type == 2 ? MiscMath.decToHex(
+                        MiscMath.binToDec(MiscMath.binAnd(
+                                MiscMath.decToBin(MiscMath.hexToDec(left.toString())),
+                                MiscMath.decToBin(MiscMath.hexToDec(right.toString()))
+                        ))
+            ) : MiscMath.binAnd(left.toString(), right.toString());
         }
 
         // Unreachable.
@@ -231,10 +290,9 @@ public class Interpreter implements Expr.Visitor<Object>,
             arguments.add(evaluate(argument));
         }
 
-
         if (!(callee instanceof MBasicCallable)) {
             throw new RuntimeError(expr.paren,
-                    "Can only call functions and classes.");
+                    "Can only call functions.");
         }
 
 
@@ -378,9 +436,12 @@ public class Interpreter implements Expr.Visitor<Object>,
                                      Object left, Object right) {
         // 0: Double
         // 1: Integer
+        // 2: Hexadecimal
+        // 3: Binary
         if (left instanceof Double && right instanceof Double) return 0;
         if (left instanceof Integer && right instanceof Integer) return 1;
         if (MiscMath.isHex(left.toString()) && MiscMath.isHex(right.toString())) return 2;
+        if (MiscMath.isBin(left.toString()) && MiscMath.isBin(right.toString())) return 3;
         // [operand]
         throw new RuntimeError(operator, "Operands must be numbers.");
     }
@@ -455,6 +516,18 @@ public class Interpreter implements Expr.Visitor<Object>,
             return true;
         }
 
+        public static boolean isBin(String bin){
+            if(!bin.startsWith("0b")){
+                return false;
+            }
+            for(char c : bin.substring(3).toCharArray()){
+                if(!(c == '0' || c == '1')){
+                    return false;
+                }
+            }
+            return true;
+        }
+
         private static String reverseString(String str){
             char ch;
             String nstr = "";
@@ -467,10 +540,58 @@ public class Interpreter implements Expr.Visitor<Object>,
         }
 
         public static String decToHex(int dec){
-            char remainder = HexValues.get(dec%16);
-            int quotient = dec/16;
-            
-            return null;
+            StringBuilder convertedHex = new StringBuilder();
+
+            for(int i = dec; i >= 1; i /= 16){
+                char hexDigit = HexValues.get(i%16);
+                convertedHex.append(hexDigit);
+            }
+
+            convertedHex.append("x0");
+
+            return reverseString(convertedHex.toString());
+        }
+
+        public static String decToBin(int bin){
+            StringBuilder convertedBin = new StringBuilder();
+
+            for(int i = bin; i >= 1; i /= 2){
+                int binDigit = i%2;
+                convertedBin.append(binDigit);
+            }
+
+            convertedBin.append("b0");
+
+            return reverseString(convertedBin.toString());
+        }
+
+        public static int hexToDec(String hex){
+            if(!hex.startsWith("0x")){
+                throw new RuntimeError(new Token(null, hex, null, -1), "Expected hexadecimal value.");
+            }
+
+            String part = reverseString(hex.substring(2)).toUpperCase();
+            char[] parts = part.toCharArray();
+            int minisum = 0;
+            for(int i = 0; i < part.length(); i++){
+                minisum += Math.pow(16, i) * HexValues.indexOf(parts[i]);
+            }
+
+            return minisum;
+        }
+
+        public static int binToDec(String bin){
+            if(!bin.startsWith("0b")){
+                throw new RuntimeError(new Token(null, bin, null, -1), "Expected binary value.");
+            }
+
+            String part = reverseString(bin.substring(2)).toUpperCase();
+            char[] parts = part.toCharArray();
+            int minisum = 0;
+            for(int i = 0; i < part.length(); i++){
+                minisum += Math.pow(2, i) * Integer.parseInt(String.valueOf(parts[i]));
+            }
+            return minisum;
         }
 
         public static String hexAdd(String... hexNums){
@@ -534,7 +655,7 @@ public class Interpreter implements Expr.Visitor<Object>,
 
             StringBuilder convertedHex = new StringBuilder();
 
-            for(int i = sum; i >= 1; i /= 16){
+            for(int i = Math.abs(sum); i >= 1; i /= 16){
                 char hexDigit = HexValues.get(i%16);
                 convertedHex.append(hexDigit);
             }
@@ -545,7 +666,129 @@ public class Interpreter implements Expr.Visitor<Object>,
         }
 
         public static String binAdd(String... binNums){
-            return null;
+            int sum = 0;
+            for(String num : binNums){
+                if(!num.startsWith("0b")){
+                    throw new RuntimeError(new Token(null, num, null, -1), "Expected binary value.");
+                }
+
+                String part = reverseString(num.substring(2)).toUpperCase();
+                char[] parts = part.toCharArray();
+                int minisum = 0;
+                for(int i = 0; i < part.length(); i++){
+                    minisum += Math.pow(2, i) * Integer.parseInt(String.valueOf(parts[i]));
+                }
+                sum += minisum;
+            }
+
+            StringBuilder convertedBin = new StringBuilder();
+
+            for(int i = sum; i >= 1; i /= 2){
+                int binDigit = i%2;
+                convertedBin.append(binDigit);
+            }
+
+            convertedBin.append("b0");
+
+            return reverseString(convertedBin.toString());
+        }
+
+        public static String binSubtract(String binNum1, String binNum2){
+            int sum = 0;
+
+            //binNum1
+            if(!binNum1.startsWith("0b")){
+                throw new RuntimeError(new Token(null, binNum1, null, -1), "Expected binary value.");
+            }
+            String part = reverseString(binNum1.substring(2)).toUpperCase();
+            char[] parts = part.toCharArray();
+            int minisum = 0;
+            for(int i = 0; i < part.length(); i++){
+                minisum += Math.pow(2, i) * Integer.parseInt(String.valueOf(parts[i]));
+            }
+            sum += minisum;
+
+            //binNum2
+            if(!binNum2.startsWith("0b")){
+                throw new RuntimeError(new Token(null, binNum2, null, -1), "Expected binary value.");
+            }
+            part = reverseString(binNum2.substring(2)).toUpperCase();
+            parts = part.toCharArray();
+            minisum = 0;
+            for(int i = 0; i < part.length(); i++){
+                minisum += Math.pow(2, i) * Integer.parseInt(String.valueOf(parts[i]));
+            }
+            sum -= minisum;
+
+            StringBuilder convertedBin = new StringBuilder();
+
+            for(int i = sum; i >= 1; i /= 2){
+                int binDigit = i%2;
+                convertedBin.append(binDigit);
+            }
+
+            convertedBin.append("b0");
+
+            return reverseString(convertedBin.toString());
+        }
+
+        public static String binAnd(String binNum1, String binNum2){
+            if(!binNum1.startsWith("0b")){
+                throw new RuntimeError(new Token(null, binNum1, null, -1), "Expected binary value.");
+            }
+            if(!binNum2.startsWith("0b")){
+                throw new RuntimeError(new Token(null, binNum2, null, -1), "Expected binary value.");
+            }
+
+            StringBuilder binResult = new StringBuilder();
+            int length = Math.max(binNum1.substring(2).length(), binNum2.substring(2).length());
+            char[] bin1 = reverseString(binNum1).toCharArray();
+            char[] bin2 = reverseString(binNum2).toCharArray();
+            for(int i = 0; i < length; i++){
+                try {
+                    if(bin1[i] == bin2[i] && bin1[i] == '1'){
+                        binResult.append("1");
+                    } else {
+                        binResult.append("0");
+                    }
+                } catch(IndexOutOfBoundsException ex){
+                    binResult.append("0");
+                }
+            }
+            binResult.append("b0");
+            return reverseString(binResult.toString());
+        }
+
+        public static String binOr(String binNum1, String binNum2){
+            if(!binNum1.startsWith("0b")){
+                throw new RuntimeError(new Token(null, binNum1, null, -1), "Expected binary value.");
+            }
+            if(!binNum2.startsWith("0b")){
+                throw new RuntimeError(new Token(null, binNum2, null, -1), "Expected binary value.");
+            }
+
+            StringBuilder binResult = new StringBuilder();
+            int length = Math.max(binNum1.substring(2).length(), binNum2.substring(2).length());
+            char[] bin1 = reverseString(binNum1).toCharArray();
+            char[] bin2 = reverseString(binNum2).toCharArray();
+            for(int i = 0; i < length; i++){
+                try {
+                    if(bin1[i] == bin2[i] && bin1[i] == '0'){
+                        binResult.append("0");
+                    } else {
+                        binResult.append("1");
+                    }
+                } catch(IndexOutOfBoundsException ex){
+                    boolean bin1Bigger = bin1.length > bin2.length;
+                    if(bin1Bigger){
+                        binResult.append(bin1[i]);
+                    } else {
+                        binResult.append(bin2[i]);
+                    }
+                }
+            }
+            binResult.append("b0");
+            return reverseString(binResult.toString());
         }
     }
 }

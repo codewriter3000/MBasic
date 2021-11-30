@@ -106,10 +106,16 @@ public class Tokenizer {
                 if(match('|')){
                     addToken(LOGICAL_OR);
                     break;
+                } else {
+                    addToken(BITWISE_OR);
+                    break;
                 }
             case '&':
                 if(match('&')){
                     addToken(LOGICAL_AND);
+                    break;
+                } else {
+                    addToken(BITWISE_AND);
                     break;
                 }
 

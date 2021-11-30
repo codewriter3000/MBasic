@@ -242,9 +242,22 @@ public class Parser {
 
 
     private Expr factor() {
-        Expr expr = unary();
+        Expr expr = bitwise();
 
         while (match(SLASH, STAR, PERCENT)) {
+            Token operator = previous();
+            Expr right = bitwise();
+            expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+
+    private Expr bitwise() {
+        Expr expr = unary();
+
+        while (match(BITWISE_AND, BITWISE_OR)) {
             Token operator = previous();
             Expr right = unary();
             expr = new Expr.Binary(expr, operator, right);
