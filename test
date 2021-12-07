@@ -1,1 +1,25 @@
-print(0b1001 | 0b1100);
+
+// Certificate Program
+// Alex Micharski
+
+let credits = 0;
+do register_courses(courses_remaining){
+    print("How many credits for this course");
+    let creds = read();
+    credits = credits + decimal(creds);
+    if(courses_remaining > 1){
+        return register_courses(decimal(courses_remaining - 1));
+    } else {
+        if(credits < 5){
+            print("Not enough credits");
+        }
+    }
+}
+
+do start(){
+    print("How many courses");
+    let courses = read();
+    register_courses(decimal(courses));
+}
+
+start();

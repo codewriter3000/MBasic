@@ -131,6 +131,8 @@ public class Tokenizer {
             case '0':
                 if (match('x')) hex();
                 if (match('b')) binary();
+                number();
+                break;
 
             case ' ':
             case '\r':

@@ -10,3 +10,21 @@ while(x < 100, {
     print(x);
     x += 1;
 });
+
+do fizzBuzz(n){
+    if(n%3 == 0){
+        print("Fizz");
+    } else if(n%5 == 0){
+        print("Buzz");
+    } else if(n%15 == 0){
+        print("FizzBuzz");
+    } else {
+        print(n);
+    }
+
+    if(n <= 100){
+        fizzBuzz(n+1);
+    }
+}
+
+fizzBuzz(1);

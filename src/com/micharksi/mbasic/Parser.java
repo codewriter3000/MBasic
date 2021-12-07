@@ -30,8 +30,9 @@ public class Parser {
 
     private Stmt declaration(){
         try {
-            if(match(LET)) return varDeclaration();
+            if(match(NAMESPACE)) return namespace();
             if(match(DO)) return function();
+            if(match(LET)) return varDeclaration();
             if(matchPrim()){
                 Token name = consume(IDENTIFIER, "Expect variable name.");
                 Token type = previous();
@@ -46,7 +47,6 @@ public class Parser {
                 // if the next keyword is a varDecl, then make the variable assigned to a type
                 // if it's a function, then make the function assigned to a type
             }
-            if(match(NAMESPACE)) return namespace();
             return statement();
         } catch(ParseError error){
             synchronize();
@@ -127,14 +127,14 @@ public class Parser {
     private Stmt namespace(){
         Token name = consume(IDENTIFIER, "Expect namespace name.");
 
-        consume(LEFT_BRACE, "Expect '{' before class body.");
+        consume(LEFT_BRACE, "Expect '{' before namespace body.");
 
         List<Stmt> statements = new ArrayList<>();
         while (!check(RIGHT_BRACE) && !isAtEnd()) {
             statements.add(declaration());
         }
 
-        consume(RIGHT_BRACE, "Expect '}' after class body.");
+        consume(RIGHT_BRACE, "Expect '}' after namespace body.");
 
         return new Stmt.Namespace(name, statements);
     }
@@ -157,6 +157,9 @@ public class Parser {
     }
 
     private Expr expression(){
+//        if(match(DOT)){
+//            return function();
+//        }
         return assignment();
     }
 

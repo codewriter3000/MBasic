@@ -104,6 +104,34 @@ public class Interpreter implements Expr.Visitor<Object>,
                         null, -1), "Expected bin, int, or hex.");
             }
         });
+
+        globals.define("decimal", new MBasicCallable() {
+
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                if(arguments.get(0) instanceof Integer) return arguments.get(0);
+                if(MiscMath.isBin(arguments.get(0).toString()))
+                    return MiscMath.binToDec(arguments.get(0).toString());
+                if(MiscMath.isHex(arguments.get(0).toString()))
+                    return MiscMath.hexToDec(arguments.get(0).toString());
+
+                try {
+                    System.out.println("yeet: " + arguments.get(0));
+                    return arguments.get(0).toString().contains(".") ?
+                              arguments.get(0)
+                            : Integer.parseInt(arguments.get(0).toString());
+                    //return Integer.parseInt(arguments.get(0).toString());
+                } catch(NumberFormatException ex){
+                    throw new RuntimeError(new Token(null, arguments.get(0).toString(),
+                            null, -1), "Expected int.");
+                }
+            }
+        });
     }
 
     void interpret(List<Stmt> statements) {
@@ -206,7 +234,8 @@ public class Interpreter implements Expr.Visitor<Object>,
 
                 return type == 2 ? MiscMath.hexSubtract(left.toString(), right.toString())
                         : type == 3 ? MiscMath.binSubtract(left.toString(), right.toString())
-                        : (double)left - (double)right;
+                        : type == 0 ? (double)left - (double)right
+                        : (int)left - (int)right;
             case PLUS:
                 if (left instanceof Double && right instanceof Double) {
                     return (double)left + (double)right;
@@ -217,8 +246,8 @@ public class Interpreter implements Expr.Visitor<Object>,
                 }
 
                 if (left instanceof String && right instanceof String) {
-                    char miscTypeLeft = left.toString().toCharArray()[1];
-                    char miscTypeRight = right.toString().toCharArray()[1];
+                    char miscTypeLeft = left.toString().toCharArray()[0];
+                    char miscTypeRight = right.toString().toCharArray()[0];
 
                     if (miscTypeLeft == miscTypeRight){
                         if (miscTypeLeft == 'x'){
@@ -442,6 +471,8 @@ public class Interpreter implements Expr.Visitor<Object>,
         if (left instanceof Integer && right instanceof Integer) return 1;
         if (MiscMath.isHex(left.toString()) && MiscMath.isHex(right.toString())) return 2;
         if (MiscMath.isBin(left.toString()) && MiscMath.isBin(right.toString())) return 3;
+        if (left instanceof Integer && right instanceof Double) return 4;
+        if (left instanceof Double && right instanceof Integer) return 5;
         // [operand]
         throw new RuntimeError(operator, "Operands must be numbers.");
     }
