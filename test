@@ -1,25 +1,19 @@
+// MBasic FizzBuzz
 
-// Certificate Program
-// Alex Micharski
-
-let credits = 0;
-do register_courses(courses_remaining){
-    print("How many credits for this course");
-    let creds = read();
-    credits = credits + decimal(creds);
-    if(courses_remaining > 1){
-        return register_courses(decimal(courses_remaining - 1));
+do fizzBuzz(n){
+    if(n%3 == 0){
+        print("Fizz");
+    } else if(n%5 == 0){
+        print("Buzz");
+    } else if(n%15 == 0){
+        print("FizzBuzz");
     } else {
-        if(credits < 5){
-            print("Not enough credits");
-        }
+        print(n);
+    }
+
+    if(n < 100){
+        fizzBuzz(n+1);
     }
 }
 
-do start(){
-    print("How many courses");
-    let courses = read();
-    register_courses(decimal(courses));
-}
-
-start();
+fizzBuzz(1);

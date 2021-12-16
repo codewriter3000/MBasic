@@ -121,7 +121,6 @@ public class Interpreter implements Expr.Visitor<Object>,
                     return MiscMath.hexToDec(arguments.get(0).toString());
 
                 try {
-                    System.out.println("yeet: " + arguments.get(0));
                     return arguments.get(0).toString().contains(".") ?
                               arguments.get(0)
                             : Integer.parseInt(arguments.get(0).toString());
